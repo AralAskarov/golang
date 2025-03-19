@@ -1,10 +1,10 @@
 # Bet system
 
 # Uml diagram
-![Скриншот](images/golang-uml.jpg)
+![Скриншот](golang-uml.jpg)
 
 # Erd diagram
-![Скриншот](images/golang-erd.jpg)
+![Скриншот](golang-erd.jpg)
 
 
 Team: Arlan Zhumagulov
