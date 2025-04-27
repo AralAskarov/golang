@@ -59,11 +59,11 @@ spec:
           runAsUser: 0
         resources:
           requests:
-            cpu: 1000m
-            memory: 6000Mi
+            cpu: 500m
+            memory: 512Mi
           limits:
-            cpu: 1600m
-            memory: 7000Mi
+            cpu: 1500m
+            memory: 1200Mi
       volumes:
       - name: migrations-volume
         configMap:

@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata:
   name: db-migrations
 data:
-  "001_init.sql": |
+  "V1__init.sql": |
     CREATE TABLE users (
         id SERIAL PRIMARY KEY,
         username VARCHAR(255) NOT NULL UNIQUE,

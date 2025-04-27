@@ -48,7 +48,7 @@ func (s *TokenService) CreateToken(ctx context.Context, email, clientSecret stri
 	headerJson, _ := json.Marshal(header)
 	headerEncoded := base64.RawURLEncoding.EncodeToString(headerJson)
 
-	expirationTime := time.Now().Add(15 * time.Minute).Unix()
+	expirationTime := time.Now().Add(75 * time.Minute).Unix()
 	payload := map[string]interface{}{
 		"email":    email,
 		"exp":      expirationTime,

@@ -1,4 +1,4 @@
 container:
-  image: arala/go-auth-service:latest
+  image: arala/go-auth-service:1
 
 deployment_name: auth-deployment
