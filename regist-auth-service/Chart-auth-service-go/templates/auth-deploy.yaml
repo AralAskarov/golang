@@ -21,7 +21,7 @@ spec:
         - name: MYSQL_PWD
           valueFrom:
             secretKeyRef:
-              name: mysql-credentials
+              name: mysql-password
               key: cred-mysql
         command: ['sh', '-c', 
           'until mysql -h mysql-service -u myuser -e "SELECT 1"; 
@@ -39,7 +39,7 @@ spec:
         - name: FLYWAY_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: mysql-credentials
+              name: mysql-password
               key: cred-mysql
         volumeMounts:
         - name: migrations-volume
