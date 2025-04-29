@@ -82,4 +82,4 @@ spec:
       volumes:
       - name: migrations-volume
         configMap:
-          name: /migrations
+          name: db-migrations
