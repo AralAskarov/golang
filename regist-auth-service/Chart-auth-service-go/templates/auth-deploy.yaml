@@ -28,12 +28,9 @@ spec:
           do echo "Waiting for MySQL to be ready..."; sleep 2; done;']
       - name: run-migrations
         image: migrate/migrate
-        command: ['migrate']
+        command: ['sh', '-c']
         args: 
-        - '-path=/migrations'
-        - '-database'
-        - 'mysql://myuser:$(MIGRATE_PASSWORD)@tcp(mysql-service:3306)/mydatabase'
-        - 'up'
+        - 'migrate -path=/migrations -database "mysql://myuser:$MIGRATE_PASSWORD@mysql-service:3306/mydatabase" up'
         env:
         - name: MIGRATE_PASSWORD
           valueFrom:
