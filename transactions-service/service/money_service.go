@@ -284,7 +284,7 @@ func (s *BalanceService) Withdrawal(ctx context.Context, accessToken, cardNumber
 			return nil, err
 		}
 		log.Printf("Balance successfully updated")
-		return &model.Response{Message: "Balance successfully replenished"}, nil
+		return &model.Response{Message: "Balance successfully replenished to card back"}, nil
 
 	case resp.StatusCode == http.StatusBadRequest && strings.Contains(bodyStr, "Invalid Credentials"):
 		log.Printf("Error: Invalid card credentials")
