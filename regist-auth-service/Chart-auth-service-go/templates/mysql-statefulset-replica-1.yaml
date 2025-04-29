@@ -16,7 +16,9 @@ spec:
       terminationGracePeriodSeconds: 15
       containers:
       - name: mysql-container  
-        image: mysql:8.0  
+        image: mysql:8.0
+        args:
+          - --log-bin-trust-function-creators=1
         volumeMounts:
         - name: mysql-pvc  
           mountPath: /var/lib/mysql  
