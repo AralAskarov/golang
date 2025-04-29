@@ -39,8 +39,6 @@ data:
     VALUES (UUID_TO_BIN(UUID(), 1), 'bob@example.com', 'bob_jones', '123', 500);
   
   "trigger.sql": |
-    SET SESSION log_bin_trust_function_creators = 1;
-
     DELIMITER //
     CREATE TRIGGER before_users_insert 
     BEFORE INSERT ON users 
