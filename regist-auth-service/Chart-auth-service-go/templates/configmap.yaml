@@ -3,14 +3,10 @@ kind: ConfigMap
 metadata:
   name: db-migrations
 data:
-  "000001_drop_existing_tables.up.sql": |
+  "init.sql": |
     DROP TABLE IF EXISTS sessions;
     DROP TABLE IF EXISTS users;
-  
-  "000001_drop_existing_tables.down.sql": |
-    -- Пустой файл для отката (поскольку таблицы будут созданы в следующих миграциях)
-  
-  "000002_create_users.up.sql": |
+
     CREATE TABLE users (
         uuid BINARY(16) PRIMARY KEY COMMENT 'UUID in binary format',
         email VARCHAR(255) UNIQUE NOT NULL,
@@ -19,9 +15,7 @@ data:
         balance INT NOT NULL DEFAULT 0,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB;
-    
-    CREATE INDEX idx_users_email ON users(email);
-    
+
     CREATE TRIGGER before_users_insert 
     BEFORE INSERT ON users 
     FOR EACH ROW 
@@ -30,12 +24,9 @@ data:
             SET NEW.uuid = UUID_TO_BIN(UUID(), 1);
         END IF;
     END;
-  
-  "000002_create_users.down.sql": |
-    DROP TRIGGER IF EXISTS before_users_insert;
-    DROP TABLE IF EXISTS users;
-  
-  "000003_create_sessions.up.sql": |
+
+    CREATE INDEX idx_users_email ON users(email);
+
     CREATE TABLE sessions (
         token TEXT NOT NULL,
         user_uuid BINARY(16) NOT NULL,
@@ -46,19 +37,13 @@ data:
         INDEX idx_user_uuid (user_uuid),
         INDEX idx_expires_at (expires_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-  
-  "000003_create_sessions.down.sql": |
-    DROP TABLE IF EXISTS sessions;
-  
-  "000004_insert_test_data.up.sql": |
+
+    -- Вставка тестовых данных
     INSERT INTO users (uuid, email, username, password, balance) 
     VALUES (UUID_TO_BIN(UUID(), 1), 'john@example.com', 'john_doe', '123', 1000);
-    
+
     INSERT INTO users (uuid, email, username, password, balance) 
     VALUES (UUID_TO_BIN(UUID(), 1), 'alice@example.com', 'alice_smith', '123', 2500);
-    
+
     INSERT INTO users (uuid, email, username, password, balance) 
     VALUES (UUID_TO_BIN(UUID(), 1), 'bob@example.com', 'bob_jones', '123', 500);
-  
-  "000004_insert_test_data.down.sql": |
-    DELETE FROM users WHERE email IN ('john@example.com', 'alice@example.com', 'bob@example.com');

@@ -27,12 +27,11 @@ spec:
           'until mysql -h mysql-service -u myuser -e "SELECT 1"; 
           do echo "Waiting for MySQL to be ready..."; sleep 2; done;']
       - name: run-migrations
-        image: migrate/migrate
-        command: ['sh', '-c']
-        args: 
-        - 'migrate -path=/migrations -database "mysql://myuser:$MIGRATE_PASSWORD@mysql-service:3306/mydatabase" up'
+        image: mysql:8.0
+        command: ['sh', '-c', 
+          'mysql -h mysql-service -u myuser -p$MYSQL_PWD mydatabase < /migrations/init.sql']
         env:
-        - name: MIGRATE_PASSWORD
+        - name: MYSQL_PWD
           valueFrom:
             secretKeyRef:
               name: mysql-password
@@ -83,4 +82,4 @@ spec:
       volumes:
       - name: migrations-volume
         configMap:
-          name: db-migrations
+          name: /migrations
