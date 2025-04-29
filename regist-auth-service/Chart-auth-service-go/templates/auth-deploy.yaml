@@ -53,9 +53,9 @@ spec:
                 key: secret-key
           - name: DB_PASS
             valueFrom:
-            secretKeyRef:
-              name: mysql-password
-              key: cred-mysql
+              secretKeyRef:
+                name: mysql-password
+                key: cred-mysql
           - name: DB_HOST
             value: "mysql-service"
           - name: DB_PORT
