@@ -27,23 +27,22 @@ spec:
           'until mysql -h mysql-service -u myuser -e "SELECT 1"; 
           do echo "Waiting for MySQL to be ready..."; sleep 2; done;']
       - name: run-migrations
-        image: flyway/flyway:9.21
-        command: ["flyway"]
-        args:
-          - "-url=jdbc:mysql://mysql-service:3306/mydatabase"
-          - "-user=myuser"
-          - "-password=$(FLYWAY_PASSWORD)"
-          - "-connectRetries=10"
-          - "migrate"
+        image: migrate/migrate
+        command: ['migrate']
+        args: 
+        - '-path=/migrations'
+        - '-database'
+        - 'mysql://myuser:$(MIGRATE_PASSWORD)@tcp(mysql-service:3306)/mydatabase'
+        - 'up'
         env:
-        - name: FLYWAY_PASSWORD
+        - name: MIGRATE_PASSWORD
           valueFrom:
             secretKeyRef:
               name: mysql-password
               key: cred-mysql
         volumeMounts:
         - name: migrations-volume
-          mountPath: /flyway/sql
+          mountPath: /migrations
       containers:
       - name: auth-container
         image: {{ .Values.container.image }}
