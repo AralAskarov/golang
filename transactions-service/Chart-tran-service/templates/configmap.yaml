@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-migrations
+data:
+  "V1__init.sql": |
+    CREATE TABLE users (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(255) NOT NULL UNIQUE,
+        email VARCHAR(255) NOT NULL UNIQUE,
+        password TEXT NOT NULL,
+        balance int
+    );
+    CREATE TABLE refresh_tokens (
+        id SERIAL PRIMARY KEY,
+        user_id INT REFERENCES users(id) ON DELETE CASCADE,
+        refresh_token TEXT NOT NULL UNIQUE,
+        expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+    );
+
+    INSERT INTO users (username, email, password, balance) 
+    VALUES ('john_doe', 'john@example.com', '123', 1000);
+
+    INSERT INTO users (username, email, password, balance) 
+    VALUES ('alice_smith', 'alice@example.com', '123', 2500);
+
+    INSERT INTO users (username, email, password, balance) 
+    VALUES ('bob_jones', 'bob@example.com', '123', 500);
