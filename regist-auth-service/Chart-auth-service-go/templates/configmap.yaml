@@ -16,17 +16,6 @@ data:
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB;
 
-    DELIMITER //
-    CREATE TRIGGER before_users_insert 
-    BEFORE INSERT ON users 
-    FOR EACH ROW 
-    BEGIN
-        IF NEW.uuid IS NULL THEN
-            SET NEW.uuid = UUID_TO_BIN(UUID(), 1);
-        END IF;
-    END//
-    DELIMITER ;
-
     CREATE INDEX idx_users_email ON users(email);
 
     CREATE TABLE sessions (
@@ -40,7 +29,6 @@ data:
         INDEX idx_expires_at (expires_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-    -- Вставка тестовых данных
     INSERT INTO users (uuid, email, username, password, balance) 
     VALUES (UUID_TO_BIN(UUID(), 1), 'john@example.com', 'john_doe', '123', 1000);
 
@@ -49,3 +37,15 @@ data:
 
     INSERT INTO users (uuid, email, username, password, balance) 
     VALUES (UUID_TO_BIN(UUID(), 1), 'bob@example.com', 'bob_jones', '123', 500);
+  
+  "trigger.sql": |
+    DELIMITER //
+    CREATE TRIGGER before_users_insert 
+    BEFORE INSERT ON users 
+    FOR EACH ROW 
+    BEGIN
+        IF NEW.uuid IS NULL THEN
+            SET NEW.uuid = UUID_TO_BIN(UUID(), 1);
+        END IF;
+    END//
+    DELIMITER ;

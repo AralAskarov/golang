@@ -29,7 +29,7 @@ spec:
       - name: run-migrations
         image: mysql:8.0
         command: ['sh', '-c', 
-          'mysql -h mysql-service -u myuser -p$MYSQL_PWD mydatabase < /migrations/init.sql']
+          'mysql -h mysql-service -u myuser -p$MYSQL_PWD mydatabase < /migrations/init.sql && mysql -h mysql-service -u myuser -p$MYSQL_PWD mydatabase < /migrations/trigger.sql']
         env:
         - name: MYSQL_PWD
           valueFrom:
