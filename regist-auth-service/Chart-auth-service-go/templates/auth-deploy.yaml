@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.deployment_name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: auth
+    spec:
+      initContainers:
+      - name: check-db-ready
+        image: mysql:8.0
+        env:
+        - name: MYSQL_PWD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-credentials
+              key: cred-mysql
+        command: ['sh', '-c', 
+          'until mysql -h mysql-service -u myuser -e "SELECT 1"; 
+          do echo "Waiting for MySQL to be ready..."; sleep 2; done;']
+      - name: run-migrations
+        image: flyway/flyway:9.21
+        command: ["flyway"]
+        args:
+          - "-url=jdbc:mysql://mysql-service:3306/mydatabase"
+          - "-user=myuser"
+          - "-password=$(FLYWAY_PASSWORD)"
+          - "-connectRetries=10"
+          - "migrate"
+        env:
+        - name: FLYWAY_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-credentials
+              key: cred-mysql
+        volumeMounts:
+        - name: migrations-volume
+          mountPath: /flyway/sql
+      containers:
+      - name: auth-container
+        image: {{ .Values.container.image }}
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: DB_USER
+            value: myuser
+          - name: SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: secret-key
+                key: secret-key
+          - name: DB_PASS
+            valueFrom:
+            secretKeyRef:
+              name: mysql-password
+              key: cred-mysql
+          - name: DB_HOST
+            value: "mysql"
+          - name: DB_PORT
+            value: "3306"
+          - name: DB_NAME
+            value: "mydatabase"
+          - name: HTTPPort
+            value: ":8080"
+          - name: SESSION_DURATION
+            value: "30m"
+          - name: API_GATEWAY_URL
+            value: "https://30kfdcqx-8080.euw.devtunnels.ms"
+          - name: SERVICE_PATH
+            value: "/api/v1/bets"
+        securityContext:
+          runAsUser: 0
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+          limits:
+            cpu: 1500m
+            memory: 1200Mi
+      volumes:
+      - name: migrations-volume
+        configMap:
+          name: db-migrations

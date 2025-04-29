@@ -1,0 +1,4 @@
+container:
+  image: arala/sanz:1
+
+deployment_name: auth-deployment
