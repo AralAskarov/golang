@@ -16,6 +16,7 @@ data:
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB;
 
+    DELIMITER //
     CREATE TRIGGER before_users_insert 
     BEFORE INSERT ON users 
     FOR EACH ROW 
@@ -23,7 +24,8 @@ data:
         IF NEW.uuid IS NULL THEN
             SET NEW.uuid = UUID_TO_BIN(UUID(), 1);
         END IF;
-    END;
+    END//
+    DELIMITER ;
 
     CREATE INDEX idx_users_email ON users(email);
 
