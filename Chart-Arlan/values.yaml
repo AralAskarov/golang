@@ -1,0 +1,4 @@
+# container:
+#   image: arala/arlan:1
+
+# deployment_name: auth-deployment

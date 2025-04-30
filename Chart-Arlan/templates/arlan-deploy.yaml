@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: betting-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: betting-service
+  template:
+    metadata:
+      labels:
+        app: betting-service
+    spec:
+      containers:
+      - name: betting-service
+        image: arala/arlan:1
+        ports:
+        - containerPort: 8080
+        envFrom:
+        - configMapRef:
+            name: betting-service-config
+      initContainers:
+      - name: wait-for-migration
+        image: bitnami/kubectl:latest
+        command: ['sh', '-c', 'kubectl wait --for=condition=complete --timeout=60s job/betting-migration || true']

@@ -12,3 +12,5 @@ Team: Arlan Zhumagulov
 Sanzhar Ashirbekov
 
 Aral Askarov
+
+![alt text](image.png)

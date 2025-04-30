@@ -1,0 +1,16 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: betting-migration
+spec:
+  template:
+    spec:
+      containers:
+      - name: migrate
+        image: your-registry/betting-service:latest # Замените на ваш образ
+        command: ["go", "run", "./cmd/migrate/main.go", "-dbpath", "/tmp/events.db", "-path", "./migrations", "-direction", "up"]
+        envFrom:
+        - configMapRef:
+            name: betting-service-config
+      restartPolicy: Never
+  backoffLimit: 2
