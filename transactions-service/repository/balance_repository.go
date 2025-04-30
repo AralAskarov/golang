@@ -48,16 +48,15 @@ func UUIDToBinReordered(uuid string) ([]byte, error) {
 }
 
 func (r *PostgresBalanceRepository) UpdateBalanceByUUID(ctx context.Context, uuid string, amount int) error {
-	hexUUID, err := UUIDToBinReordered(uuid)
-	if err != nil {
-		return err
-	}
+	upperUUID := strings.ToUpper(uuid)
+	noHyphens := strings.ReplaceAll(upperUUID, "-", "")
+	cleaned := "0x" + noHyphens
 	query := `
 		UPDATE users
 		SET balance = balance + ?
 		WHERE uuid = ?
 	`
-	_, err = r.db.ExecContext(ctx, query, amount, hexUUID)
+	_, err := r.db.ExecContext(ctx, query, amount, cleaned)
 	return err
 }
 
