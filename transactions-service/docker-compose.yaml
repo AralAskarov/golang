@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: postgres
+    environment:
+      - POSTGRES_PASSWORD=cgroup123
+      - POSTGRES_USER=user
+      - POSTGRES_DB=golangdb
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 4G
+
+  flyway:
+    image: flyway/flyway:9.21
+    container_name: flyway
+    command: -url=jdbc:postgresql://postgres:5432/golangdb -user=user -password=cgroup123 -connectRetries=10 migrate
+    volumes:
+      - ./internal/data/migrations:/flyway/sql
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  tran-service:
+    image: arala/go-tran-service:11
+    container_name: tran-service
+    environment:
+      - DATABASE_URL=postgres://user:cgroup123@postgres:5432/golangdb?sslmode=disable
+      - PORT=8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      flyway:
+        condition: service_completed_successfully
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1200M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+volumes:
+  postgres-data:
