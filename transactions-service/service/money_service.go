@@ -24,6 +24,8 @@ var (
 	ErrInvalidCredentialsCard = errors.New("Invalid card credentials")
 	ErrInvalidCredentials     = errors.New("Invalid user credentials")
 	ErrPaymentFailed         = errors.New("Error")
+	ErrUserNotFound      = errors.New("user not found")
+    ErrInsufficientFunds = errors.New("insufficient funds")
 )
 
 // var secretKey []byte
@@ -233,4 +235,15 @@ func (s *BalanceService) Withdrawal(ctx context.Context, accessToken, cardNumber
 		log.Printf("Error: Payment failed with unexpected response: [%d] %s", resp.StatusCode, bodyStr)
 		return nil, ErrPaymentFailed
 	}
+}
+
+func (s *BalanceService) ProcessUserPayout(ctx context.Context, userID string, amount int) error {
+	
+	err := s.balanceRepo.UpdateBalanceByUUID(ctx, userID, amount)
+	if err != nil {
+		log.Printf("ERROR: Failed to update balance in database: %v", err)
+		return err
+	}
+	log.Println("Balance successfully updated")
+	return nil
 }

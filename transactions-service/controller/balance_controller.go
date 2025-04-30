@@ -6,6 +6,7 @@ import (
   "net/http"
   "time"
   "strconv"
+  "errors"
   "log"
   "transervice/service"
 )
@@ -13,7 +14,10 @@ import (
 type BalanceController struct {
 	balanceService *service.BalanceService
 }
-
+var (
+    ErrUserNotFound      = errors.New("user not found")
+    ErrInsufficientFunds = errors.New("insufficient funds")
+)
 func NewBalanceController(balanceService *service.BalanceService) *BalanceController {
 	return &BalanceController{
 		balanceService: balanceService,
@@ -127,4 +131,70 @@ func respondWithJSON(w http.ResponseWriter, data interface{}, code int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(data)
+}
+
+func (c *BalanceController) UpdateBalance(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		respondWithErrorr(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	
+	ctx, cancel := context.WithTimeout(r.Context(), 16*time.Second)
+	defer cancel()
+	
+	var payoutRequest struct {
+		UserID string  `json:"userId"`
+		Amount int `json:"amount"`
+	}
+	
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&payoutRequest); err != nil {
+		respondWithErrorr(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+	
+	
+	err := c.balanceService.ProcessUserPayout(ctx, payoutRequest.UserID, payoutRequest.Amount)
+	if err != nil {
+		log.Printf("ProcessUserPayout error: %v", err)
+		switch {
+		case errors.Is(err, ErrUserNotFound):
+			respondWithErrorr(w, "User not found", http.StatusNotFound)
+		case errors.Is(err, ErrInsufficientFunds):
+			respondWithErrorr(w, "Insufficient system funds", http.StatusConflict)
+		default:
+			respondWithErrorr(w, "Internal server error", http.StatusInternalServerError)
+		}
+		return
+	}
+	
+	response := struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+	}{
+		Success: true,
+		Message: "Payout processed successfully",
+	}
+	
+	respondWithJSONN(w, response, http.StatusOK)
+}
+
+func respondWithErrorr(w http.ResponseWriter, message string, statusCode int) {
+	response := struct {
+		Success bool   `json:"success"`
+		Error   string `json:"error"`
+	}{
+		Success: false,
+		Error:   message,
+	}
+	respondWithJSON(w, response, statusCode)
+}
+
+func respondWithJSONN(w http.ResponseWriter, data interface{}, statusCode int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		log.Printf("Error encoding response: %v", err)
+	}
 }

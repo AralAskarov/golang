@@ -54,6 +54,7 @@ func setupRoutes(balanceController *controller.BalanceController) http.Handler {
 
 	mux.Handle("/dep/balance", middleware.Recover(middleware.Logger(http.HandlerFunc(balanceController.ReplenishmentRequest))))
 	mux.Handle("/dep/withdrawal", middleware.Recover(middleware.Logger(http.HandlerFunc(balanceController.WithdrawalRequest))))
+	mux.Handle("/dep/updateresults", middleware.Recover(middleware.Logger(http.HandlerFunc(balanceController.UpdateBalance))))
 
 	return mux
 }
