@@ -6,6 +6,7 @@ data:
   "init.sql": |
     DROP TABLE IF EXISTS sessions;
     DROP TABLE IF EXISTS users;
+    DROP TABLE IF EXISTS transactions;
 
     CREATE TABLE users (
         uuid BINARY(16) PRIMARY KEY COMMENT 'UUID in binary format',
