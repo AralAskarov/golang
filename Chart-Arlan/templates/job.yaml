@@ -7,7 +7,7 @@ spec:
     spec:
       containers:
       - name: migrate
-        image: your-registry/betting-service:latest # Замените на ваш образ
+        image: arala/arlan:1
         command: ["go", "run", "./cmd/migrate/main.go", "-dbpath", "/tmp/events.db", "-path", "./migrations", "-direction", "up"]
         envFrom:
         - configMapRef:
