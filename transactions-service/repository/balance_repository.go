@@ -49,6 +49,37 @@ func (r *PostgresBalanceRepository) UpdateBalanceByUUID(ctx context.Context, uui
 	return nil
 }
 
+func (r *PostgresBalanceRepository) UpdateBalanceByUUIDPAY(ctx context.Context, uuid string, amount int) error {
+	query := `
+		UPDATE users
+		SET balance = balance + $1
+		WHERE uuid = $2
+	`
+	result, err := r.db.ExecContext(ctx, query, amount, uuid)
+	if err != nil {
+		return err
+	}
+	
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	
+	if rows == 0 {
+		insertQuery := `
+			INSERT INTO users (uuid, balance)
+			VALUES ($1, $2)
+		`
+		_, err = r.db.ExecContext(ctx, insertQuery, uuid, amount)
+		if err != nil {
+			return err
+		}
+	}
+	
+	return nil
+}
+
+
 func (r *PostgresBalanceRepository) UpdateBalanceByUUIDWithDrawal(ctx context.Context, uuid string, amount int) error {
 	upperUUID := strings.ToUpper(uuid)
 	noHyphens := strings.ReplaceAll(upperUUID, "-", "")

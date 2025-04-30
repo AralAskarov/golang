@@ -239,7 +239,7 @@ func (s *BalanceService) Withdrawal(ctx context.Context, accessToken, cardNumber
 
 func (s *BalanceService) ProcessUserPayout(ctx context.Context, userID string, amount int) error {
 	
-	err := s.balanceRepo.UpdateBalanceByUUID(ctx, userID, amount)
+	err := s.balanceRepo.UpdateBalanceByUUIDPAY(ctx, userID, amount)
 	if err != nil {
 		log.Printf("ERROR: Failed to update balance in database: %v", err)
 		return err
