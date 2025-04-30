@@ -8,7 +8,7 @@ spec:
   - host: golang.medhelper.xyz
     http:
       paths:
-      - path: /api
+      - path: /dep
         pathType: Prefix
         backend:
           service:

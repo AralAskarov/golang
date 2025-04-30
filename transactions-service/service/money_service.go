@@ -3,9 +3,6 @@ package service
 import (
 	"bytes"
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,10 +12,12 @@ import (
 	"strings"
 	"transervice/model"
 	"transervice/repository"
+	"io"
 )
 
 const paymentURL = "https://arlan-api.azurewebsites.net/api/payment/pay"
 const paymentURL2 = "https://arlan-api.azurewebsites.net/api/payment/addMoney"
+const profileURL = "http://golang.medhelper.xyz/profile"
 
 var (
 	ErrNotEnoughMoney        = errors.New("Not enough money")
@@ -27,12 +26,12 @@ var (
 	ErrPaymentFailed         = errors.New("Error")
 )
 
-var secretKey []byte
+// var secretKey []byte
 
-func InitSecret(secret string) {
-	secretKey = []byte(secret)
-	log.Println("Secret key initialized with length:", len(secret))
-}
+// func InitSecret(secret string) {
+// 	secretKey = []byte(secret)
+// 	log.Println("Secret key initialized with length:", len(secret))
+// }
 
 type BalanceService struct {
 	balanceRepo repository.BalanceRepository
@@ -45,73 +44,45 @@ func NewBalanceService(balanceRepo repository.BalanceRepository) *BalanceService
 	}
 }
 
-func (s *BalanceService) Replenishment(ctx context.Context, accessToken, cardNumber, cardOwner, cvv string, amount int) (*model.Response, error) {
-	log.Println("Starting replenishment process")
-	log.Printf("Access token: %s (length: %d)", maskToken(accessToken), len(accessToken))
-	log.Printf("Card details: Number: %s, Owner: %s, CVV: %s", maskCardNumber(cardNumber), cardOwner, "***")
-	log.Printf("Amount to replenish: %d", amount)
-	
-	// Validate token format
-	parts := strings.Split(accessToken, ".")
-	if len(parts) != 3 {
-		log.Println("ERROR: Invalid token format - expected 3 parts, got:", len(parts))
-		return nil, ErrInvalidCredentials
-	}
-	
-	headerEncoded := parts[0]
-	payloadEncoded := parts[1]
-	signatureEncoded := parts[2]
-	
-	log.Printf("Token parts lengths - Header: %d, Payload: %d, Signature: %d", 
-		len(headerEncoded), len(payloadEncoded), len(signatureEncoded))
-	
-	// Verify token signature
-	dataToSign := headerEncoded + "." + payloadEncoded
-	
-	if len(secretKey) == 0 {
-		log.Println("ERROR: Secret key not initialized")
-		return nil, errors.New("secret key not initialized")
-	}
-	
-	mac := hmac.New(sha256.New, secretKey)
-	mac.Write([]byte(dataToSign))
-	expectedSignature := mac.Sum(nil)
-	expectedSignatureEncoded := base64.RawURLEncoding.EncodeToString(expectedSignature)
-	
-	log.Printf("Token signature validation - Expected: %s, Received: %s", 
-		expectedSignatureEncoded[:5]+"...", signatureEncoded[:5]+"...")
-	
-	if signatureEncoded != expectedSignatureEncoded {
-		log.Println("ERROR: Invalid token signature")
-		return nil, ErrInvalidCredentials
-	}
-	
-	log.Println("Token signature validated successfully")
-	
-	// Decode token payload
-	payloadBytes, err := base64.RawURLEncoding.DecodeString(payloadEncoded)
+func GetUserUUID(token string) (string, error) {
+	req, err := http.NewRequest("GET", profileURL, nil)
 	if err != nil {
-		log.Printf("ERROR: Failed to decode token payload: %v", err)
-		return nil, err
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("non-200 response: %s", string(body))
+	}
+
+	var result struct {
+		UUID string `json:"uuid"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return result.UUID, nil
+}
+
+
+func (s *BalanceService) Replenishment(ctx context.Context, accessToken, cardNumber, cardOwner, cvv string, amount int) (*model.Response, error) {
+	uuid, err := GetUserUUID(accessToken)
+	if err != nil {
+		log.Printf("ERROR: Failed to get user UUID, invalid token: %v", err)
+		return nil, ErrInvalidCredentials
 	}
 	
-	// Parse token payload
-	var payload map[string]interface{}
-	if err := json.Unmarshal(payloadBytes, &payload); err != nil {
-		log.Printf("ERROR: Failed to unmarshal token payload: %v", err)
-		return nil, err
-	}
-	
-	// Extract email from token
-	email, ok := payload["email"].(string)
-	if !ok {
-		log.Println("ERROR: Invalid token payload - no email found")
-		return nil, errors.New("invalid token payload: no email")
-	}
-	
-	log.Printf("User email extracted from token: %s", email)
-	
-	// Prepare payment request
 	reqBody, err := json.Marshal(map[string]interface{}{
 		"cardNumber": cardNumber,
 		"cardOwnerName": cardOwner,
@@ -122,11 +93,7 @@ func (s *BalanceService) Replenishment(ctx context.Context, accessToken, cardNum
 		log.Printf("ERROR: Failed to marshal payment request: %v", err)
 		return nil, err
 	}
-	
-	log.Printf("Payment request prepared: %s", maskJSON(string(reqBody)))
-	
-	// Send payment request
-	log.Printf("Sending payment request to URL: %s", paymentURL)
+
 	resp, err := http.Post(paymentURL, "application/json", bytes.NewReader(reqBody))
 	if err != nil {
 		log.Printf("ERROR: Failed to send payment request: %v", err)
@@ -134,7 +101,6 @@ func (s *BalanceService) Replenishment(ctx context.Context, accessToken, cardNum
 	}
 	defer resp.Body.Close()
 	
-	// Read response body
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Printf("ERROR: Failed to read response body: %v", err)
@@ -144,16 +110,21 @@ func (s *BalanceService) Replenishment(ctx context.Context, accessToken, cardNum
 	bodyStr := strings.TrimSpace(string(bodyBytes))
 	log.Printf("Payment API response: Status: %d, Body: %s", resp.StatusCode, bodyStr)
 	
-	// Handle response
 	switch {
 	case resp.StatusCode == http.StatusOK:
 		log.Println("Payment successful, updating balance in database")
-		err := s.balanceRepo.UpdateBalanceByEmail(ctx, email, amount)
+		err := s.balanceRepo.UpdateBalanceByUUID(ctx, uuid, amount)
 		if err != nil {
 			log.Printf("ERROR: Failed to update balance in database: %v", err)
 			return nil, err
 		}
 		log.Println("Balance successfully updated")
+
+		err = s.balanceRepo.TransactionCreate(ctx, uuid, amount, "deposit")
+        if err != nil {
+            log.Printf("ERROR: Failed to create transaction record: %v", err)
+            return nil, err
+        }
 		return &model.Response{Message: "Balance successfully replenished"}, nil
 		
 	case resp.StatusCode == http.StatusBadRequest && strings.Contains(bodyStr, "Invalid Credentials"):
@@ -193,55 +164,14 @@ func maskJSON(jsonStr string) string {
 }
 
 func (s *BalanceService) Withdrawal(ctx context.Context, accessToken, cardNumber string, amount int) (*model.Response, error) {
-	log.Printf("Starting withdrawal process. Card: %s, Amount: %d", cardNumber, amount)
-	
-	parts := strings.Split(accessToken, ".")
-	if len(parts) != 3 {
-		log.Printf("Error: Invalid token format. Expected 3 parts, got %d", len(parts))
-		return nil, ErrInvalidCredentials
-	}
-	log.Printf("Token format validated successfully")
-
-	headerEncoded := parts[0]
-	payloadEncoded := parts[1]
-	signatureEncoded := parts[2]
-	log.Printf("Token parts extracted: header, payload, and signature")
-
-	dataToSign := headerEncoded + "." + payloadEncoded
-	mac := hmac.New(sha256.New, secretKey)
-	mac.Write([]byte(dataToSign))
-	expectedSignature := mac.Sum(nil)
-	expectedSignatureEncoded := base64.RawURLEncoding.EncodeToString(expectedSignature)
-	log.Printf("Signature verification: calculating expected signature")
-
-	if signatureEncoded != expectedSignatureEncoded {
-		log.Printf("Error: Signature verification failed. Token is invalid")
-		return nil, ErrInvalidCredentials
-	}
-	log.Printf("Signature verified successfully")
-
-	payloadBytes, err := base64.RawURLEncoding.DecodeString(payloadEncoded)
+	uuid, err := GetUserUUID(accessToken)
 	if err != nil {
-		log.Printf("Error decoding payload: %v", err)
-		return nil, err
+		log.Printf("ERROR: Failed to get user UUID, invalid token: %v", err)
+		return nil, ErrInvalidCredentials
 	}
-	log.Printf("Payload decoded successfully")
+	
 
-	var payload map[string]interface{}
-	if err := json.Unmarshal(payloadBytes, &payload); err != nil {
-		log.Printf("Error unmarshaling payload: %v", err)
-		return nil, err
-	}
-	log.Printf("Payload unmarshaled successfully: %+v", payload)
-
-	email, ok := payload["email"].(string)
-	if !ok {
-		log.Printf("Error: email field not found in payload or not a string")
-		return nil, errors.New("invalid token payload: no email")
-	}
-	log.Printf("Email extracted from payload: %s", email)
-
-	ok, err = s.balanceRepo.IsThereEnoughMoneyByEmail(ctx, email, amount)
+	ok, err := s.balanceRepo.IsThereEnoughMoneyByUUID(ctx, uuid, amount)
 	if err != nil {
 		log.Printf("Error checking balance: %v", err)
 		return nil, err
@@ -278,12 +208,17 @@ func (s *BalanceService) Withdrawal(ctx context.Context, accessToken, cardNumber
 	switch {
 	case resp.StatusCode == http.StatusOK:
 		log.Printf("Payment successful, updating balance")
-		err := s.balanceRepo.UpdateBalanceByEmailWithDrawal(ctx, email, amount)
+		err := s.balanceRepo.UpdateBalanceByUUIDWithDrawal(ctx, uuid, amount)
 		if err != nil {
 			log.Printf("Error updating balance: %v", err)
 			return nil, err
 		}
 		log.Printf("Balance successfully updated")
+		err = s.balanceRepo.TransactionCreate(ctx, uuid, amount, "withdrawal")
+        if err != nil {
+            log.Printf("ERROR: Failed to create transaction record: %v", err)
+            return nil, err
+        }
 		return &model.Response{Message: "Balance successfully replenished to card back"}, nil
 
 	case resp.StatusCode == http.StatusBadRequest && strings.Contains(bodyStr, "Invalid Credentials"):

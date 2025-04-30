@@ -29,6 +29,14 @@ data:
         INDEX idx_expires_at (expires_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+    CREATE TABLE transactions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        uuid BINARY(16) NOT NULL COMMENT 'users.uuid',
+        amount INT NOT NULL,
+        type ENUM('deposit', 'withdrawal') NOT NULL,
+        time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
     INSERT INTO users (uuid, email, username, password, balance) 
     VALUES (UUID_TO_BIN(UUID(), 1), 'john@example.com', 'john_doe', '123', 1000);
 

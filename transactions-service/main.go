@@ -18,7 +18,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	cfg := config.New()
-	service.InitSecret(cfg.JWTSecretKey)
+	// service.InitSecret(cfg.JWTSecretKey)
 	db, err := repository.NewDatabase(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("Database connection fail %v", err)
@@ -52,8 +52,8 @@ func main() {
 func setupRoutes(balanceController *controller.BalanceController) http.Handler {
 	mux := http.NewServeMux()
 
-	mux.Handle("/api/balance", middleware.Recover(middleware.Logger(http.HandlerFunc(balanceController.ReplenishmentRequest))))
-	mux.Handle("/api/withdrawal", middleware.Recover(middleware.Logger(http.HandlerFunc(balanceController.WithdrawalRequest))))
+	mux.Handle("/dep/balance", middleware.Recover(middleware.Logger(http.HandlerFunc(balanceController.ReplenishmentRequest))))
+	mux.Handle("/dep/withdrawal", middleware.Recover(middleware.Logger(http.HandlerFunc(balanceController.WithdrawalRequest))))
 
 	return mux
 }

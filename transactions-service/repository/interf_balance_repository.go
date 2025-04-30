@@ -5,7 +5,8 @@ import (
 )
 
 type BalanceRepository interface {
-	IsThereEnoughMoneyByEmail(ctx context.Context, email string, amount int) (bool, error)
-	UpdateBalanceByEmail(ctx context.Context, email string, amount int) error
-	UpdateBalanceByEmailWithDrawal(ctx context.Context, email string, amount int) error
+	IsThereEnoughMoneyByUUID(ctx context.Context, uuid string, amount int) (bool, error)
+	UpdateBalanceByUUID(ctx context.Context, uuid string, amount int) error
+	UpdateBalanceByUUIDWithDrawal(ctx context.Context, uuid string, amount int) error
+	TransactionCreate(ctx context.Context, uuid string, amount int, transactionType string) error
 }

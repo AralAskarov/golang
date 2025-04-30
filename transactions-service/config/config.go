@@ -4,7 +4,6 @@ import "os"
 import "log"
 
 type Config struct {
-	JWTSecretKey string
 	Port 		 string
 	DatabaseURL  string
 }
@@ -15,19 +14,14 @@ func New() *Config {
 		port = "8082"
 	}
 
-	dbURL := os.Getenv("DATABASE_URL")
-	if dbURL == "" {
-		log.Fatal("DATABASE_URL environment variable is required")
-	}
 
-	JWT := os.Getenv("JWT_SECRET_KEY")
-	if JWT == "" {
-		log.Fatal("JWT_SECRET_KEY environment variable is required")
+	dbURLMYSQL := os.Getenv("DATABASE_URL_MYSQL")
+	if dbURLMYSQL == "" {
+		log.Fatal("DATABASE_URL_MYSQL environment variable is required")
 	}
 
 	return &Config{
-		JWTSecretKey: JWT,
 		Port:         port,
-		DatabaseURL:  dbURL,
+		DatabaseURL:  dbURLMYSQL,
 	}
 }

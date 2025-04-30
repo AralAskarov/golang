@@ -107,8 +107,6 @@ func (c *BalanceController) WithdrawalRequest(w http.ResponseWriter, r *http.Req
 			respondWithError(w, "Not enough money on the card", http.StatusUnauthorized)
 		case service.ErrInvalidCredentials:
 			respondWithError(w, "Invalid card credentials", http.StatusUnauthorized)
-		case service.ErrInvalidCredentials:
-			respondWithError(w, "Invalid user credentials", http.StatusUnauthorized)
 		default:
 			respondWithError(w, "Internal server error", http.StatusInternalServerError)
 		}
