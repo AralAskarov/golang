@@ -3,9 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"encoding/hex"
 	"strings"
-	"fmt"
 )
 
 type PostgresBalanceRepository struct {
@@ -16,76 +14,43 @@ func NewPostgresBalanceRepository(db *sql.DB) BalanceRepository {
 	return &PostgresBalanceRepository{db: db}
 }
 
-func UUIDToHexBin(uuid string) (string, error) {
-	uuid = strings.ReplaceAll(uuid, "-", "")
-	bytes, err := hex.DecodeString(uuid)
-	if err != nil {
-		return "", err
-	}
-	return "0x" + strings.ToUpper(hex.EncodeToString(bytes)), nil
-}
-
-func UUIDToBinReordered(uuid string) ([]byte, error) {
-	uuid = strings.ReplaceAll(uuid, "-", "")
-	if len(uuid) != 32 {
-		return nil, fmt.Errorf("invalid UUID length")
-	}
-	raw, err := hex.DecodeString(uuid)
-	if err != nil {
-		return nil, err
-	}
-	if len(raw) != 16 {
-		return nil, fmt.Errorf("decoded UUID must be 16 bytes")
-	}
-
-	reordered := make([]byte, 16)
-	copy(reordered[0:4], raw[6:8]) 
-	copy(reordered[2:4], raw[4:6])  
-	copy(reordered[4:8], raw[0:4]) 
-	copy(reordered[8:16], raw[8:16]) 
-
-	return reordered, nil
-}
-
 func (r *PostgresBalanceRepository) UpdateBalanceByUUID(ctx context.Context, uuid string, amount int) error {
 	upperUUID := strings.ToUpper(uuid)
 	noHyphens := strings.ReplaceAll(upperUUID, "-", "")
 	cleaned := "0x" + noHyphens
 	query := `
 		UPDATE users
-		SET balance = balance + ?
-		WHERE uuid = ?
+		SET balance = balance + $1
+		WHERE uuid = $2
 	`
 	_, err := r.db.ExecContext(ctx, query, amount, cleaned)
 	return err
 }
 
 func (r *PostgresBalanceRepository) UpdateBalanceByUUIDWithDrawal(ctx context.Context, uuid string, amount int) error {
-	hexUUID, err := UUIDToBinReordered(uuid)
-	if err != nil {
-		return err
-	}
+	upperUUID := strings.ToUpper(uuid)
+	noHyphens := strings.ReplaceAll(upperUUID, "-", "")
+	cleaned := "0x" + noHyphens
 	query := `
 		UPDATE users
-		SET balance = balance - ?
-		WHERE uuid = ?
+		SET balance = balance + $1
+		WHERE uuid = $2
 	`
-	_, err = r.db.ExecContext(ctx, query, amount, hexUUID)
+	_, err := r.db.ExecContext(ctx, query, amount, cleaned)
 	return err
 }
 
 func (r *PostgresBalanceRepository) IsThereEnoughMoneyByUUID(ctx context.Context, uuid string, amount int) (bool, error) {
-	hexUUID, err := UUIDToBinReordered(uuid)
-	if err != nil {
-		return false, err
-	}
+	upperUUID := strings.ToUpper(uuid)
+	noHyphens := strings.ReplaceAll(upperUUID, "-", "")
+	cleaned := "0x" + noHyphens
 	query := `
 		SELECT balance
 		FROM users
-		WHERE uuid = ?
+		WHERE uuid = $1
 	`
 	var balance int
-	err = r.db.QueryRowContext(ctx, query, hexUUID).Scan(&balance)
+	err := r.db.QueryRowContext(ctx, query, cleaned).Scan(&balance)
 	if err != nil {
 		return false, err
 	}

@@ -14,16 +14,40 @@ spec:
       labels:
         app: tran
     spec:
+      initContainers:
+      - name: check-db-ready
+        image: postgres:17
+        command: ['sh', '-c', 
+          'until pg_isready -h postgres-service -p 5432; 
+          do echo waiting for database; sleep 2; done;']
+      - name: run-migrations
+        image: flyway/flyway:9.21
+        command: ["flyway"]
+        args:
+          - "-url=jdbc:postgresql://postgres-service:5432/golangdb"
+          - "-user=user"
+          - "-password=$(FLYWAY_PASSWORD)"
+          - "-connectRetries=10"
+          - "migrate"
+        env:
+        - name: FLYWAY_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: postgres-password
+        volumeMounts:
+        - name: migrations-volume
+          mountPath: /flyway/sql
       containers:
       - name: tran-container
         image: {{ .Values.container.image }}
         imagePullPolicy: IfNotPresent
         env:
-          - name: DATABASE_URL_MYSQL
+          - name: DATABASE_URL
             valueFrom:
               secretKeyRef:
-                name: cred-mysql
-                key: cred-mysql-connect
+                name: cred-postgres
+                key: cred-postgres
           - name: PORT
             value: "8080"
         securityContext:
@@ -35,3 +59,7 @@ spec:
           limits:
             cpu: 1500m
             memory: 1200Mi
+      volumes:
+      - name: migrations-volume
+        configMap:
+          name: db2-migrations

@@ -5,3 +5,7 @@ CREATE TABLE transactions (
     type ENUM('deposit', 'withdrawal') NOT NULL,
     time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE users (
+    uuid TEXT,
+    balance int
+);

@@ -15,13 +15,13 @@ func New() *Config {
 	}
 
 
-	dbURLMYSQL := os.Getenv("DATABASE_URL_MYSQL")
-	if dbURLMYSQL == "" {
-		log.Fatal("DATABASE_URL_MYSQL environment variable is required")
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		log.Fatal("DATABASE_URL environment variable is required")
 	}
 
 	return &Config{
 		Port:         port,
-		DatabaseURL:  dbURLMYSQL,
+		DatabaseURL:  dbURL,
 	}
 }
