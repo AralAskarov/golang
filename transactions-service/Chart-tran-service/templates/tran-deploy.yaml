@@ -14,15 +14,6 @@ spec:
       labels:
         app: tran
     spec:
-        env:
-        - name: FLYWAY_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: postgres-credentials
-              key: postgres-password
-        volumeMounts:
-        - name: migrations-volume
-          mountPath: /flyway/sql
       containers:
       - name: tran-container
         image: {{ .Values.container.image }}
