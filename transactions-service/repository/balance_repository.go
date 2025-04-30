@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"strings"
+	"fmt"
 )
 
 type PostgresBalanceRepository struct {
@@ -18,13 +19,34 @@ func (r *PostgresBalanceRepository) UpdateBalanceByUUID(ctx context.Context, uui
 	upperUUID := strings.ToUpper(uuid)
 	noHyphens := strings.ReplaceAll(upperUUID, "-", "")
 	cleaned := "0x" + noHyphens
+	
 	query := `
 		UPDATE users
 		SET balance = balance + $1
 		WHERE uuid = $2
 	`
-	_, err := r.db.ExecContext(ctx, query, amount, cleaned)
-	return err
+	result, err := r.db.ExecContext(ctx, query, amount, cleaned)
+	if err != nil {
+		return err
+	}
+	
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	
+	if rows == 0 {
+		insertQuery := `
+			INSERT INTO users (uuid, balance)
+			VALUES ($1, $2)
+		`
+		_, err = r.db.ExecContext(ctx, insertQuery, cleaned, amount)
+		if err != nil {
+			return err
+		}
+	}
+	
+	return nil
 }
 
 func (r *PostgresBalanceRepository) UpdateBalanceByUUIDWithDrawal(ctx context.Context, uuid string, amount int) error {
@@ -51,6 +73,9 @@ func (r *PostgresBalanceRepository) IsThereEnoughMoneyByUUID(ctx context.Context
 	`
 	var balance int
 	err := r.db.QueryRowContext(ctx, query, cleaned).Scan(&balance)
+	if err == sql.ErrNoRows {
+		return false, fmt.Errorf("user with uuid %s not found", uuid)
+	}
 	if err != nil {
 		return false, err
 	}
@@ -61,7 +86,7 @@ func (r *PostgresBalanceRepository) IsThereEnoughMoneyByUUID(ctx context.Context
 func (r *PostgresBalanceRepository) TransactionCreate(ctx context.Context, uuid string, amount int, transactionType string) error {
     query := `
         INSERT INTO transactions (uuid, amount, type) 
-        VALUES (UUID_TO_BIN(?, 1), ?, ?)
+        VALUES ($1, $2, $3)
     `
     
     if transactionType != "deposit" && transactionType != "withdrawal" {
