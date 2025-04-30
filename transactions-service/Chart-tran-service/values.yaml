@@ -1,4 +1,4 @@
 container:
-  image: arala/go-tran-service:8
+  image: arala/go-tran-service:9
 
 deployment_name: tran-deployment

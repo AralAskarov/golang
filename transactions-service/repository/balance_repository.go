@@ -55,7 +55,7 @@ func (r *PostgresBalanceRepository) UpdateBalanceByUUIDWithDrawal(ctx context.Co
 	cleaned := "0x" + noHyphens
 	query := `
 		UPDATE users
-		SET balance = balance + $1
+		SET balance = balance - $1
 		WHERE uuid = $2
 	`
 	_, err := r.db.ExecContext(ctx, query, amount, cleaned)
