@@ -1,11 +1,12 @@
 CREATE TABLE transactions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    uuid BINARY(16) NOT NULL COMMENT 'users.uuid',
+    id SERIAL PRIMARY KEY,
+    uuid BYTEA NOT NULL,
     amount INT NOT NULL,
-    type ENUM('deposit', 'withdrawal') NOT NULL,
-    time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    type TEXT NOT NULL CHECK (type IN ('deposit', 'withdrawal')),
+    time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
 CREATE TABLE users (
     uuid TEXT,
-    balance int
+    balance INT
 );
