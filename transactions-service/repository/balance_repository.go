@@ -17,7 +17,7 @@ func (r *PostgresBalanceRepository) UpdateBalanceByUUID(ctx context.Context, uui
 	query := `
 		UPDATE users
 		SET balance = balance + ?
-		WHERE uuid = UUID_TO_BIN(?, 1)
+		WHERE uuid = UUID_TO_BIN(REPLACE(?, '-', ''), 1)
 	`
 	_, err := r.db.ExecContext(ctx, query, amount, uuid)
 	return err
@@ -27,7 +27,7 @@ func (r *PostgresBalanceRepository) UpdateBalanceByUUIDWithDrawal(ctx context.Co
 	query := `
 		UPDATE users
 		SET balance = balance - ?
-		WHERE uuid = UUID_TO_BIN(?, 1);
+		WHERE uuid = UUID_TO_BIN(REPLACE(?, '-', ''), 1);
 	`
 	_, err := r.db.ExecContext(ctx, query, amount, uuid)
 	return err
@@ -37,7 +37,7 @@ func (r *PostgresBalanceRepository) IsThereEnoughMoneyByUUID(ctx context.Context
 	query := `
 		SELECT balance
 		FROM users
-		WHERE uuid = UUID_TO_BIN(?, 1)
+		WHERE uuid = UUID_TO_BIN(REPLACE(?, '-', ''), 1)
 	`
 	var balance int
 	err := r.db.QueryRowContext(ctx, query, uuid).Scan(&balance)
