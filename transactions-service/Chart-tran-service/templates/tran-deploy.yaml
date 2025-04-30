@@ -32,7 +32,7 @@ spec:
             valueFrom:
               secretKeyRef:
                 name: cred-mysql
-                key: cred-mysql
+                key: cred-mysql-connect
           - name: PORT
             value: "8080"
         securityContext:
