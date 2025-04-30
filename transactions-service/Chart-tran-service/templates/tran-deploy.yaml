@@ -35,7 +35,3 @@ spec:
           limits:
             cpu: 1500m
             memory: 1200Mi
-      volumes:
-      - name: migrations-volume
-        configMap:
-          name: db-migrations
